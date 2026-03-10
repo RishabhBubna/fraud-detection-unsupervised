@@ -135,6 +135,18 @@ data loading, cleaning, EDA, preprocessing, model training and evaluation in ord
 
 ---
 
+## Roadmap
+
+The following MLOps components are planned for future development:
+
+- [ ] **DVC** — version control for datasets and model artifacts, track experiments and reproduce results
+- [ ] **MLflow** — experiment tracking, model registry and artifact logging for all training runs
+- [ ] **FastAPI** — REST API endpoint for real-time transaction scoring using the saved ensemble
+- [ ] **Docker** — containerize the FastAPI application for portable and reproducible deployment
+- [ ] **CI/CD** — automated testing and deployment pipeline using GitHub Actions
+
+---
+
 ## Limitations
 
 - **Test set exposure during ensemble tuning** : the ensemble weights (0.9/0.1) were selected by sweeping a grid evaluated on the test set. Strictly speaking, a held-out validation set should be used in production to avoid mild overfitting to the test set.
@@ -146,18 +158,6 @@ data loading, cleaning, EDA, preprocessing, model training and evaluation in ord
 ## Validation
 
 As an additional sanity check, COPOD (Copula-Based Outlier Detection) was run on the same features with no hyperparameter tuning, achieving AUROC 0.7181 and AP 0.0720. Three fundamentally different algorithms independently finding fraud signal in the same range confirms the preprocessing pipeline is sound and results are not an artifact of data leakage.
-
----
-
-## Roadmap
-
-The following MLOps components are planned for future development:
-
-- [ ] **DVC** — version control for datasets and model artifacts, track experiments and reproduce results
-- [ ] **MLflow** — experiment tracking, model registry and artifact logging for all training runs
-- [ ] **FastAPI** — REST API endpoint for real-time transaction scoring using the saved ensemble
-- [ ] **Docker** — containerize the FastAPI application for portable and reproducible deployment
-- [ ] **CI/CD** — automated testing and deployment pipeline using GitHub Actions
 
 ---
 
