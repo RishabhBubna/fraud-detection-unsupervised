@@ -129,6 +129,16 @@ data loading, cleaning, EDA, preprocessing, model training and evaluation in ord
 
 ---
 
+## Results
+
+![Class Imbalance](Report/figures/class_imbalance.png)
+
+![Reconstruction Errors](Report/figures/vae_reconstruction_errors.png)
+
+![Precision-Recall Curve](Report/figures/ensemble_pr_curve.png)
+
+---
+
 ## Limitations
 
 - **Test set exposure during ensemble tuning** : the ensemble weights (0.9/0.1) were selected by sweeping a grid evaluated on the test set. Strictly speaking, a held-out validation set should be used in production to avoid mild overfitting to the test set.
