@@ -207,8 +207,9 @@ marimo/_lsp/
 __marimo__/
 
 # my files
-data/
+data/processed/
 ieee-fraud-detection/
+src/processedData/*
 
 # Windows Zone Identifier files
 *:Zone.Identifier

@@ -1,0 +1,22 @@
+stages:
+  data_ingestion:
+    cmd: PYTHONPATH=. python data/data_ingestion.py
+    deps:
+    - data/data_ingestion.py
+    params:
+    - data_ingestion.no_rows
+    outs:
+    - processedData/raw/full_dataset.csv
+
+  data_preprocessing:
+    cmd: PYTHONPATH=. python data/data_preprocessing.py
+    deps:
+    - data/data_preprocessing.py
+    - processedData/raw/full_dataset.csv
+    params:
+    - data_preprocessing.test_size
+    outs:
+    - processedData/preprocessed/
+    - model/pipeline/
+    - model/pipeline/
+    - Metadata/
