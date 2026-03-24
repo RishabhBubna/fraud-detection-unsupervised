@@ -45,3 +45,39 @@ stages:
       md5: 04945419fcbb78a4d9595060ac509748.dir
       size: 719517132
       nfiles: 5
+  train_vae:
+    cmd: PYTHONPATH=. python model/train_vae.py
+    deps:
+    - path: model/VAE.py
+      hash: md5
+      md5: a2df01b32d54844ade319940bca5ed4d
+      size: 3217
+    - path: model/train_vae.py
+      hash: md5
+      md5: 0cb855b14391c798ef632e62174713f0
+      size: 5762
+    - path: processedData/preprocessed/testset_VAE.npy
+      hash: md5
+      md5: c6fd37c52d074b9fb37a7cf10717254c
+      size: 69447632
+    - path: processedData/preprocessed/testset_label.npy
+      hash: md5
+      md5: 6208e640cb6ce7854c15b784d26bfac7
+      size: 944992
+    - path: processedData/preprocessed/trainset_VAE.npy
+      hash: md5
+      md5: 34cc470297eb1770b26f39ae0f5e46de
+      size: 268028756
+    params:
+      params.yaml:
+        train_vae.batch_size: 2048
+        train_vae.beta: 1.0
+        train_vae.epoch: 50
+        train_vae.lr: 0.0001
+        train_vae.warmup_epochs: 5
+        train_vae.z_dim: 3
+    outs:
+    - path: model/best_vae.pt
+      hash: md5
+      md5: b1cf8bb0f43a64baade85ca6509bd951
+      size: 104645

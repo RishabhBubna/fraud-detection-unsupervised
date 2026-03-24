@@ -20,3 +20,21 @@ stages:
     - model/pipeline/
     - model/pipeline/
     - Metadata/
+
+  train_vae:
+    cmd: PYTHONPATH=. python model/train_vae.py
+    deps:
+    - processedData/preprocessed/trainset_VAE.npy
+    - processedData/preprocessed/testset_VAE.npy
+    - processedData/preprocessed/testset_label.npy
+    - model/VAE.py
+    - model/train_vae.py
+    params:
+    - train_vae.batch_size
+    - train_vae.epoch
+    - train_vae.beta
+    - train_vae.z_dim
+    - train_vae.lr
+    - train_vae.warmup_epochs
+    outs:
+    - model/best_vae.pt

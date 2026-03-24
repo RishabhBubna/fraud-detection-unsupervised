@@ -3,3 +3,11 @@ data_ingestion:
 
 data_preprocessing:
   test_size: 0.2
+
+train_vae:
+  batch_size: 2048
+  epoch: 50
+  beta: 1.0
+  z_dim: 3
+  lr: 0.0001
+  warmup_epochs: 5
