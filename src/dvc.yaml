@@ -63,6 +63,8 @@ stages:
     - model/model_evaluation.py
     - model/best_vae.pt
     - model/iso_forest.pkl
+    - model/pipeline/transform_rule_VAE.pkl
+    - model/pipeline/transform_rule_Iso.pkl
     params:
     - train_vae.batch_size
     - train_vae.z_dim
@@ -71,3 +73,9 @@ stages:
     - model_evaluation.iso_w
     outs:
     - Metrics/Plots
+
+  model_registry:
+    cmd: PYTHONPATH=. python model/model_registry.py
+    deps:
+    - Metadata/experiment_info.json
+    - model/model_registry.py

@@ -36,7 +36,7 @@ import joblib
 import json
 
 from model.VAE import MyVAE, Frauddataset
-
+from config import aws_uri
 from utils import load_params, setup_logger
 
 logger = setup_logger("model_evaluation", "evaluation_error.log")
@@ -169,11 +169,11 @@ def log_metrics(vae_w: float, iso_w: float, vae_normalized, iso_normalized, test
         logger.error("Logging to MLflow failed: %s", e)
         raise
 
-def save_ensemble_info(run_id: str, vae_path: str, iso_path: str, file_path: str)-> None:
+def save_ensemble_info(run_id: str, vae_path: str, iso_path: str, pipeline_path: str,file_path: str)-> None:
     '''Save run_id and model path to a JSON file'''
     try:
 
-        model_info = {"run_id": run_id, "VAE_path": vae_path, "ISO_path": iso_path}
+        model_info = {"run_id": run_id, "VAE_path": vae_path, "ISO_path": iso_path,"pipeline_path": pipeline_path}
 
         with open(file_path, 'w') as f:
             json.dump(model_info, f, indent=4)
@@ -184,7 +184,7 @@ def save_ensemble_info(run_id: str, vae_path: str, iso_path: str, file_path: str
         raise
 
 def main():
-    mlflow.set_tracking_uri("http://ec2-63-182-216-170.eu-central-1.compute.amazonaws.com:5000")
+    mlflow.set_tracking_uri(aws_uri)
 
     mlflow.set_experiment("DVC_Ensemble_run")
 
@@ -249,12 +249,13 @@ def main():
             vae_artifact_path = os.path.join(artifact_uri,"VAE_model")
 
             mlflow.sklearn.log_model(sk_model=iso_model,artifact_path="iso_forest_model",signature=signature_iso,input_example = test_X[:5])
-            artifact_uri = mlflow.get_artifact_uri()
             iso_artifact_path = os.path.join(artifact_uri,"iso_forest_model")
 
             logger.debug("models logged")
+            mlflow.log_artifact(os.path.join(root_dic, "model/pipeline/transform_rule_VAE.pkl"), artifact_path="pipeline")
+            mlflow.log_artifact(os.path.join(root_dic, "model/pipeline/transform_rule_Iso.pkl"), artifact_path="pipeline")
 
-            save_ensemble_info(run_id= run.info.run_id, vae_path = vae_artifact_path, iso_path= iso_artifact_path, file_path= os.path.join(root_dic,"Metadata/experiment_info.json"))
+            save_ensemble_info(run_id= run.info.run_id, vae_path = vae_artifact_path, iso_path= iso_artifact_path,pipeline_path=os.path.join(artifact_uri, "pipeline") ,file_path= os.path.join(root_dic,"Metadata/experiment_info.json"))
 
             mlflow.set_tag("model_type", "VAE+ISO")
             mlflow.set_tag("Task", "Anomaly detection")

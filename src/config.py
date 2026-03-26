@@ -6,3 +6,5 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Raw data — hardcoded as dataset must be downloaded manually from Kaggle
 RAW_TRANSACTION_PATH = os.path.join(BASE_DIR, "ieee-fraud-detection", "train_transaction.csv")
 RAW_IDENTITY_PATH    = os.path.join(BASE_DIR, "ieee-fraud-detection", "train_identity.csv")
+
+aws_uri = "http://ec2-3-122-107-190.eu-central-1.compute.amazonaws.com:5000"

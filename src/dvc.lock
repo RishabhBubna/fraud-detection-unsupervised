@@ -20,8 +20,8 @@ stages:
     deps:
     - path: data/data_preprocessing.py
       hash: md5
-      md5: e1a1572e23c6e3961ac7cfdd5873655c
-      size: 8472
+      md5: 4a08a2f19020bb435ad67c9469fc2333
+      size: 7306
     - path: processedData/raw/full_dataset.csv
       hash: md5
       md5: 3bbc097358c158a1dca93d08cf28c3b7
@@ -121,8 +121,16 @@ stages:
       size: 694985
     - path: model/model_evaluation.py
       hash: md5
-      md5: 761fb5f733eb7d50540c882e7fc2765d
-      size: 10367
+      md5: b108fc5b699c430444318576b74e6f77
+      size: 10630
+    - path: model/pipeline/transform_rule_Iso.pkl
+      hash: md5
+      md5: 082f1d71b1997c0ddc3600a445fd7113
+      size: 12864
+    - path: model/pipeline/transform_rule_VAE.pkl
+      hash: md5
+      md5: d0e69c5b5af7310ffd55972e3d173581
+      size: 11832
     - path: processedData/preprocessed/testset_Iso.npy
       hash: md5
       md5: 96123dceb4f9a8b8f2b32442b741668f
@@ -148,3 +156,14 @@ stages:
       md5: 252194f5ee0da57fbec1e50cbc843227.dir
       size: 50502
       nfiles: 1
+  model_registry:
+    cmd: PYTHONPATH=. python model/model_registry.py
+    deps:
+    - path: Metadata/experiment_info.json
+      hash: md5
+      md5: 96c2b76b6c57470198a65f8adba8edf6
+      size: 363
+    - path: model/model_registry.py
+      hash: md5
+      md5: af5dd50b3d979fe5c3de47d1584a0c60
+      size: 2365
