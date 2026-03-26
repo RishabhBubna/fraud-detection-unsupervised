@@ -11,8 +11,11 @@ import logging
 ## yaml
 import yaml
 
-# absolute path for data
+## absolute path for data
 from config import RAW_TRANSACTION_PATH, RAW_IDENTITY_PATH
+
+## file saving
+import json
 
 ## Setting seed 
 np.random.seed(26)
@@ -162,7 +165,7 @@ def clean_addr_cols(df: pd.DataFrame)-> pd.DataFrame:
         logger.error("addr-columns cleaning failed: %s", e)
         raise
 
-def _clean_email(x):
+def clean_email(x):
             x = str(x).lower()
             if 'gmail' in x: return 'gmail'
             if 'yahoo' in x or "ymail" in x: return 'yahoo'
@@ -177,7 +180,7 @@ def _clean_email(x):
 def clean_pemail_col(df: pd.DataFrame)-> pd.DataFrame:
     '''Bin P_emaildomain into 6 categories based on provider'''
     try:
-        df["P_emaildomain"] = df["P_emaildomain"].apply(_clean_email)
+        df["P_emaildomain"] = df["P_emaildomain"].apply(clean_email)
         logger.debug("email-columns binned successfully")
         return df
     except Exception as e:
@@ -227,7 +230,7 @@ def clean_transaction_table(df: pd.DataFrame)-> pd.DataFrame:
         logger.error("Transaction table cleaning failed: %s", e)
         raise
 
-def _clean_id30(x):
+def clean_id30(x):
     x = str(x).lower()
     if 'missing' in x: return 'missing'
     if 'windows' in x: return 'windows'
@@ -238,7 +241,7 @@ def _clean_id30(x):
     if 'nan' in x: return np.nan
     return 'other'
 
-def _clean_id31(x):
+def clean_id31(x):
     x = str(x).lower()
     if 'missing' in x: return 'missing'
     if 'chrome' in x: return 'chrome'
@@ -250,7 +253,7 @@ def _clean_id31(x):
     if 'nan' in x: return np.nan
     return 'other'
 
-def _bin_resolution(x):
+def bin_resolution(x):
     x = str(x).lower()
     if 'nan' in x: return np.nan
     if 'missing' in x: return 'missing'
@@ -301,16 +304,16 @@ def clean_id_col(df: pd.DataFrame)-> pd.DataFrame:
         df = df.drop(columns=to_drop)
         
         # cleaning categorical cols
-        df["id_30"] = df["id_30"].apply(_clean_id30)
-        df["id_31"] = df["id_31"].apply(_clean_id31)
-        df["id_33"] = df["id_33"].apply(_bin_resolution)
+        df["id_30"] = df["id_30"].apply(clean_id30)
+        df["id_31"] = df["id_31"].apply(clean_id31)
+        df["id_33"] = df["id_33"].apply(bin_resolution)
         logger.debug("id-columns cleaned, Number of id-columns left: %d", len([c for c in df.columns if c.startswith('id')]))
         return df
     except Exception as e:
         logger.error("id-columns cleaning failed: %s", e)
         raise
 
-def _clean_device_info(x):
+def clean_device_info(x):
     x = str(x).lower()
     if 'missing' in x: return 'missing'
     if 'windows' in x: return 'windows'
@@ -329,7 +332,7 @@ def _clean_device_info(x):
 def bin_deviceinfo_col(df: pd.DataFrame)-> pd.DataFrame:
     '''Binning device info column'''
     try:
-        df["DeviceInfo"] = df["DeviceInfo"].apply(_clean_device_info)
+        df["DeviceInfo"] = df["DeviceInfo"].apply(clean_device_info)
         logger.debug("Device info binned successfully")
         return df
     except Exception as e:
@@ -360,7 +363,7 @@ def merge_df(df_t: pd.DataFrame, df_i: pd.DataFrame)-> pd.DataFrame:
         logger.error("Merge unsuccessfull: %s", e)
         raise
 
-def apply_log_transforms(df: pd.DataFrame)-> pd.DataFrame:
+def apply_log_transforms(df: pd.DataFrame)-> tuple:
     '''Apply log+1 transform on skewed columns'''
     try:
         # get the numerical columns
@@ -374,7 +377,7 @@ def apply_log_transforms(df: pd.DataFrame)-> pd.DataFrame:
         for col in to_log:
             df[col] = np.log1p(df[col])
         logger.debug("log-transform done successfully")
-        return df
+        return df,to_log
     except Exception as e:
         logger.error("Merge unsuccessfull: %s", e)
         raise
@@ -392,6 +395,19 @@ def save_dataset(df: pd.DataFrame, data_path: str) -> None:
         logger.error("Dataset saving failed: %s", e)
         raise
 
+def save_column_name(column_list: list, log_list: list, file_path: str):
+    '''Save columns name for serving time'''
+    try:
+        feature_info = {"columns": column_list, "log_list": log_list}
+
+        with open(file_path, "w") as f:
+            json.dump(feature_info,f)
+        logger.debug("feature info saved: %s", file_path)
+
+    except Exception as e:
+        logger.error("feature info failed to be saved: %s", e)
+        raise
+
 def main():
     try:
         # Load params form YAML file
@@ -401,16 +417,22 @@ def main():
         # Load the transaction dataset
         df_t = load_transaction_data(RAW_TRANSACTION_PATH, no_rows = no_rows)
         df_t = clean_transaction_table(df_t)
-        
+
         # Load the identity dataset
         df_i = load_identity_Data(RAW_IDENTITY_PATH)
         df_i = clean_identity_table(df_i)
-        
+
         # Merge the table
         df = merge_df(df_t, df_i)
-        
+        column_list = df.columns.to_list()
         # Log transform
-        df = apply_log_transforms(df)
+        df,to_log = apply_log_transforms(df)
+
+        save_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),"../Metadata")
+        os.makedirs(save_file_path, exist_ok=True)
+        
+        save_column_name(column_list= column_list, log_list = to_log, file_path= os.path.join(save_file_path,"column_name.json"))
+
         
         # save dataset
         save_dataset(df, data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),"../processedData"))

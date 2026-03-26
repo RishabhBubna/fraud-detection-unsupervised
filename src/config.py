@@ -7,4 +7,4 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW_TRANSACTION_PATH = os.path.join(BASE_DIR, "ieee-fraud-detection", "train_transaction.csv")
 RAW_IDENTITY_PATH    = os.path.join(BASE_DIR, "ieee-fraud-detection", "train_identity.csv")
 
-aws_uri = "http://ec2-3-122-107-190.eu-central-1.compute.amazonaws.com:5000"
+aws_uri = "http://ec2-63-178-224-11.eu-central-1.compute.amazonaws.com:5000"

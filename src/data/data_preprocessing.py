@@ -170,7 +170,7 @@ def main():
                     }
         
         json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),"../Metadata")
-
+        logger.debug("")
         os.makedirs(json_path, exist_ok=True)
         with open(os.path.join(json_path,"feature_name.json"), "w") as f:
             json.dump(feature_dic,f)
