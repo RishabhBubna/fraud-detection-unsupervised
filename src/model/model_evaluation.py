@@ -88,7 +88,7 @@ def load_iso(iso_path: str):
         logger.error("Failed to load Isolation forest model: %s", e)
         raise
 
-def evaluate_vae(model, test_dataloader: DataLoader, device):
+def evaluate_vae(model, test_dataloader: DataLoader, device, scaler):
     '''Evaluate the score for the vae model'''
     try:
         model.eval()
@@ -105,25 +105,21 @@ def evaluate_vae(model, test_dataloader: DataLoader, device):
         
                 reconstruction_errors.extend(errors_np)
 
-        reconstruction_errors = np.array(reconstruction_errors)
-        vae_scores = reconstruction_errors.reshape(-1, 1)
-        vae_normalized = MinMaxScaler().fit_transform(vae_scores).flatten()
-        
-        logger.debug("VAE_score calculated")
+        reconstruction_errors = np.array(reconstruction_errors).reshape(-1, 1)
+        vae_normalized = scaler.transform(reconstruction_errors).flatten()
+        logger.debug("VAE score calculated")
         return vae_normalized
     except Exception as e:
         logger.error("Evaluation of VAE failed: %s", e)
         raise
 
-def evaluate_iso(model, test_X: np.ndarray):
+def evaluate_iso(model, test_X: np.ndarray, scaler):
     '''Evaluate the score for the Isolation forest model'''
     try:
 
         iso_scores = -model.decision_function(test_X)
-        iso_scores_reshaped = iso_scores.reshape(-1, 1)
-        iso_normalized = MinMaxScaler().fit_transform(iso_scores_reshaped).flatten()
-
-        logger.debug("iso_score calculated")
+        iso_normalized = scaler.transform(iso_scores.reshape(-1, 1)).flatten()
+        logger.debug("ISO score calculated")
         return iso_normalized
     except Exception as e:
         logger.error("Evaluation of isloation forest failed: %s", e)
@@ -231,8 +227,17 @@ def main():
 
             logger.debug("Isolation forest loaded")
 
-            vae_score = evaluate_vae(model = vae_model, test_dataloader= test_dataloader, device = device)
-            iso_score = evaluate_iso(model = iso_model, test_X= test_X)
+            vae_scaler_path = os.path.join(root_dic, "model/pipeline/vae_scaler.pkl")
+            iso_scaler_path = os.path.join(root_dic, "model/pipeline/iso_scaler.pkl")
+
+            vae_scaler = joblib.load(vae_scaler_path)
+            iso_scaler = joblib.load(iso_scaler_path)
+
+            mlflow.log_artifact(vae_scaler_path, artifact_path="pipeline")
+            mlflow.log_artifact(iso_scaler_path, artifact_path="pipeline")
+
+            vae_score = evaluate_vae(model = vae_model, test_dataloader= test_dataloader, device = device, scaler = vae_scaler)
+            iso_score = evaluate_iso(model = iso_model, test_X= test_X,scaler = iso_scaler)
 
             log_metrics(vae_w = vae_w, iso_w = iso_w, vae_normalized = vae_score, iso_normalized = iso_score, test_y = test_y)
 

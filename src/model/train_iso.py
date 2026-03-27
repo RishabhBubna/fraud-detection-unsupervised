@@ -7,7 +7,7 @@ import pandas as pd
 
 ## Isolation forest
 from sklearn.ensemble import IsolationForest
-
+from sklearn.preprocessing import MinMaxScaler
 ## File saving
 import joblib
 
@@ -50,7 +50,13 @@ def train_ISO(params: dict)-> None:
 
         
         joblib.dump(iso_forest, save_path)
+        iso_scores = -iso_forest.decision_function(train_X)
+        iso_scaler = MinMaxScaler()
+        iso_scaler.fit(iso_scores.reshape(-1, 1))
 
+        scaler_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pipeline/iso_scaler.pkl")
+        joblib.dump(iso_scaler, scaler_path)
+        logger.debug("ISO scaler saved to: %s", scaler_path)
         logger.debug("Isolation forest model trained and saved.")
 
     except Exception as e:

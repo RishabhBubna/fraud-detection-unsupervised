@@ -7,6 +7,7 @@ import pandas as pd
 
 ## Metric
 from sklearn.metrics import roc_auc_score, average_precision_score, precision_recall_curve
+from sklearn.preprocessing import MinMaxScaler
 
 ## Deep learning
 import torch
@@ -15,7 +16,7 @@ from torch import from_numpy
 from torch import nn
 
 from model.VAE import MyVAE, Frauddataset, vae_loss_function
-
+import joblib
 from utils import load_params, setup_logger
 
 logger = setup_logger("training_VAE", "VAE_error.log")
@@ -135,6 +136,25 @@ def training_loop(params:dict)->None:
                 best_ap = ap
                 torch.save(model.state_dict(), save_path)
                 logger.debug("best model saved with (epoch,AP): %s", (epoch,best_ap))
+
+        model.load_state_dict(torch.load(save_path))
+        model.eval()
+
+        train_errors = []
+        with torch.no_grad():
+            for x in train_dataloader:
+                x = x.to(device)
+                reconstructed, _, _ = model(x)
+                errors = torch.mean((x - reconstructed) ** 2, dim=1)
+                train_errors.extend(errors.cpu().numpy())
+
+        train_errors = np.array(train_errors).reshape(-1, 1)
+        vae_scaler = MinMaxScaler()
+        vae_scaler.fit(train_errors)
+
+        scaler_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pipeline/vae_scaler.pkl")
+        joblib.dump(vae_scaler, scaler_path)
+        logger.debug("VAE scaler saved to: %s", scaler_path)
 
         logger.debug("training complete")
     except Exception as e:

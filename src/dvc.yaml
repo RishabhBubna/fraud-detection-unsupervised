@@ -18,7 +18,8 @@ stages:
     - data_preprocessing.test_size
     outs:
     - processedData/preprocessed/
-    - model/pipeline/
+    - model/pipeline/transform_rule_Iso.pkl
+    - model/pipeline/transform_rule_VAE.pkl
     - Metadata/feature_name.json
     
 
@@ -40,6 +41,7 @@ stages:
     - train_vae.seed
     outs:
     - model/best_vae.pt
+    - model/pipeline/vae_scaler.pkl
 
   train_iso:
     cmd: PYTHONPATH=. python model/train_iso.py
@@ -53,6 +55,7 @@ stages:
     - train_iso.random_state
     outs:
     - model/iso_forest.pkl
+    - model/pipeline/iso_scaler.pkl
 
   model_evaluation:
     cmd: PYTHONPATH=. python model/model_evaluation.py

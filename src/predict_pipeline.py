@@ -23,6 +23,8 @@ VAE_MODEL_PATH = os.path.join(ROOT_DIR, "model/best_vae.pt")
 ISO_MODEL_PATH = os.path.join(ROOT_DIR, "model/iso_forest.pkl")
 VAE_PIPELINE_PATH = os.path.join(ROOT_DIR, "model/pipeline/transform_rule_VAE.pkl")
 ISO_PIPELINE_PATH = os.path.join(ROOT_DIR, "model/pipeline/transform_rule_Iso.pkl")
+VAE_SCALER_PATH = os.path.join(ROOT_DIR, "model/pipeline/vae_scaler.pkl")
+ISO_SCALER_PATH = os.path.join(ROOT_DIR, "model/pipeline/iso_scaler.pkl")
 COLUMN_METADATA_PATH = os.path.join(ROOT_DIR, "Metadata/column_name.json")
 INPUT_METADATA_PATH = os.path.join(ROOT_DIR, "Metadata/feature_name.json")
 
@@ -47,6 +49,14 @@ def load_pipeline(vae_pipeline_path: str, iso_pipeline_path: str) -> tuple:
 
     return vae_pipeline, iso_pipeline
 
+def load_scaler(vae_scaler_path: str, iso_scaler_path: str) -> tuple:
+    '''Load VAE and ISO transform rules from local paths'''
+    vae_scaler = joblib.load(vae_scaler_path)
+
+    iso_scaler = joblib.load(iso_scaler_path)
+
+    return vae_scaler, iso_scaler
+
 def load_columns_info(col_metadata_path: str, input_metadata_path: str)-> tuple:
     '''Load the column info'''
     with open(col_metadata_path, "r") as f:
@@ -68,7 +78,7 @@ def align_columns(df: pd.DataFrame, column_list: list) -> pd.DataFrame:
 
 
 
-def run_pipeline(df_t, df_i, VAE_model, ISO_model, VAE_pipeline, ISO_pipeline, columns, device):
+def run_pipeline(df_t, df_i, VAE_model, ISO_model, VAE_pipeline, ISO_pipeline,VAE_scaler, ISO_scaler, columns, device):
     '''Full pipeline from data to prediction'''
     
     vae_w = 0.9
@@ -84,19 +94,24 @@ def run_pipeline(df_t, df_i, VAE_model, ISO_model, VAE_pipeline, ISO_pipeline, c
     transaction_list.extend(["hour","day_of_week"])
     # Align columns
     df_t = align_columns(df_t, transaction_list)
-    df_i = align_columns(df_i, identity_list)
 
-    df_i["id_30"] = df_i["id_30"].apply(clean_id30)
-    df_i["id_31"] = df_i["id_31"].apply(clean_id31)
-    df_i["id_33"] = df_i["id_33"].apply(bin_resolution)
-    df_i["DeviceInfo"] = df_i["DeviceInfo"].apply(clean_device_info)
-
+    if not df_i.empty:
+        df_i["id_30"] = df_i["id_30"].apply(clean_id30)
+        df_i["id_31"] = df_i["id_31"].apply(clean_id31)
+        df_i["id_33"] = df_i["id_33"].apply(bin_resolution)
+        df_i["DeviceInfo"] = df_i["DeviceInfo"].apply(clean_device_info)
+        df_i = align_columns(df_i, identity_list)
+    else:
+        df_i = pd.DataFrame(columns=["TransactionID"])
+        df_i = align_columns(df_i, identity_list)
     # Merge
     df = merge_df(df_t, df_i)
 
     # Log transform
     for col in columns["log_list"]:
-        df[col] = np.log1p(df[col])
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+            df[col] = np.log1p(df[col])
     
 
     # Split for VAE and ISO
@@ -111,8 +126,8 @@ def run_pipeline(df_t, df_i, VAE_model, ISO_model, VAE_pipeline, ISO_pipeline, c
     # Get scores
     tensor = torch.tensor(df_vae_transformed, dtype=torch.float32)
     test_dataloader = DataLoader(TensorDataset(tensor), batch_size=batch_size, shuffle=False)
-    vae_score = evaluate_vae(model=VAE_model, test_dataloader=test_dataloader, device=device)
-    iso_score = evaluate_iso(model=ISO_model, test_X=df_iso_transformed)
+    vae_score = evaluate_vae(model=VAE_model, test_dataloader=test_dataloader, device=device, scaler= VAE_scaler)
+    iso_score = evaluate_iso(model=ISO_model, test_X=df_iso_transformed, scaler= ISO_scaler)
 
     # Ensemble
     ensemble_scores = vae_w * vae_score + iso_w * iso_score
