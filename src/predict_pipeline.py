@@ -13,7 +13,7 @@ import joblib
 import json
 
 from data.data_ingestion import (extract_temporal_features,clean_id30,clean_id31,bin_resolution,clean_device_info,merge_df)
-from model.model_evaluation import (evaluate_vae,evaluate_iso)
+# from model.model_evaluation import (evaluate_vae,evaluate_iso)
 from model.VAE import MyVAE
 
 
@@ -27,6 +27,41 @@ VAE_SCALER_PATH = os.path.join(ROOT_DIR, "model/pipeline/vae_scaler.pkl")
 ISO_SCALER_PATH = os.path.join(ROOT_DIR, "model/pipeline/iso_scaler.pkl")
 COLUMN_METADATA_PATH = os.path.join(ROOT_DIR, "Metadata/column_name.json")
 INPUT_METADATA_PATH = os.path.join(ROOT_DIR, "Metadata/feature_name.json")
+
+def evaluate_vae(model, test_dataloader: DataLoader, device, scaler):
+    '''Evaluate the score for the vae model'''
+    try:
+        model.eval()
+
+        reconstruction_errors = []
+
+        with torch.no_grad():
+            for batch in test_dataloader:
+                X = batch[0].to(device)
+                reconstructed, _, _ = model(X)
+                errors = torch.mean((X - reconstructed) ** 2, dim=1)
+        
+                errors_np = errors.cpu().numpy()
+        
+                reconstruction_errors.extend(errors_np)
+
+        reconstruction_errors = np.array(reconstruction_errors).reshape(-1, 1)
+        vae_normalized = scaler.transform(reconstruction_errors).flatten()
+        return vae_normalized
+    except Exception as e:
+        raise
+
+def evaluate_iso(model, test_X: np.ndarray, scaler):
+    '''Evaluate the score for the Isolation forest model'''
+    try:
+
+        iso_scores = -model.decision_function(test_X)
+        iso_normalized = scaler.transform(iso_scores.reshape(-1, 1)).flatten()
+
+        return iso_normalized
+    except Exception as e:
+        raise
+
 
 def load_models(vae_path: str, iso_path: str, input_dim: int, z_dim: int) -> tuple:
     '''Load VAE and ISO models from local paths'''
