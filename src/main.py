@@ -34,7 +34,8 @@ def predict(request: PredictionRequest):
     df_t = pd.DataFrame([request.transaction.model_dump()])
     df_i = pd.DataFrame([request.identity.model_dump()]) if request.identity else pd.DataFrame()
     total_score = run_pipeline(df_t,df_i,ml_models["vae"],ml_models["iso"],ml_models["vae_pipeline"],
-                               ml_models["iso_pipeline"],ml_models["columns"],ml_models["device"])
+                               ml_models["iso_pipeline"],ml_models["vae_scaler"], ml_models["iso_scaler"],
+                               ml_models["columns"],ml_models["device"])
     return PredictionResponse(
     ensemble_score=float(total_score["ensemble_score"].iloc[0]),
     prediction=int(total_score["prediction"].iloc[0])

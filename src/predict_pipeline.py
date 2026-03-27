@@ -83,7 +83,7 @@ def run_pipeline(df_t, df_i, VAE_model, ISO_model, VAE_pipeline, ISO_pipeline,VA
     
     vae_w = 0.9
     iso_w = 0.1
-    threshold = 0.15
+    threshold = 0.0779
     batch_size = 2048
 
     transaction_list = list(columns["transaction_list"])
