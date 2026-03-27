@@ -7,14 +7,15 @@ import pandas as pd
 ## deep learning
 import torch
 from torch.utils.data import DataLoader, TensorDataset
+from torch import nn
 
 ## File saving
 import joblib
 import json
 
-from data.data_ingestion import (extract_temporal_features,clean_id30,clean_id31,bin_resolution,clean_device_info,merge_df)
+# from data.data_ingestion import (extract_temporal_features,clean_id30,clean_id31,bin_resolution,clean_device_info,merge_df)
 # from model.model_evaluation import (evaluate_vae,evaluate_iso)
-from model.VAE import MyVAE
+# from model.VAE import MyVAE
 
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -28,39 +29,184 @@ ISO_SCALER_PATH = os.path.join(ROOT_DIR, "model/pipeline/iso_scaler.pkl")
 COLUMN_METADATA_PATH = os.path.join(ROOT_DIR, "Metadata/column_name.json")
 INPUT_METADATA_PATH = os.path.join(ROOT_DIR, "Metadata/feature_name.json")
 
+def clean_email(x):
+        x = str(x).lower()
+        if 'gmail' in x: return 'gmail'
+        if 'yahoo' in x or "ymail" in x: return 'yahoo'
+        if 'hotmail' in x: return 'hotmail'
+        if 'icloud' in x or "mac" in x: return 'icloud'
+        if 'anonymous' in x: return 'anonymous'
+        if 'outlook' in x or 'live' in x or 'msn' in x: return 'microsoft'
+        if 'missing' in x: return 'missing'
+        if 'nan' in x: return np.nan
+        return 'other'
+
+def extract_temporal_features(df: pd.DataFrame)-> pd.DataFrame:
+    '''Extract hours and days of the week information from datetime column'''
+    # hours information
+    df['hour'] = (df['TransactionDT'] // 3600) % 24
+    # days of the week information
+    df['day_of_week'] = (df['TransactionDT'] // (3600 * 24)) % 7
+    return df
+    
+
+def clean_id30(x):
+    x = str(x).lower()
+    if 'missing' in x: return 'missing'
+    if 'windows' in x: return 'windows'
+    if 'ios' in x or 'iphone' in x: return 'ios'
+    if 'mac' in x: return 'mac'
+    if 'android' in x: return 'android'
+    if 'linux' in x: return 'linux'
+    if 'nan' in x: return np.nan
+    return 'other'
+
+def clean_id31(x):
+    x = str(x).lower()
+    if 'missing' in x: return 'missing'
+    if 'chrome' in x: return 'chrome'
+    if 'safari' in x: return 'safari'
+    if 'ie' in x: return 'ie'
+    if 'edge' in x: return 'edge'
+    if 'firefox' in x: return 'firefox'
+    if 'samsung' in x: return 'samsung_browser'
+    if 'nan' in x: return np.nan
+    return 'other'
+
+def bin_resolution(x):
+    x = str(x).lower()
+    if 'nan' in x: return np.nan
+    if 'missing' in x: return 'missing'
+    try:
+        width, height = map(int, x.split('x'))
+    except:
+        return 'other'
+    # Mobile resolutions
+    if (width <= 1334 and height <= 750) or (width <= 750 and height <= 1334):
+        return 'mobile'
+    # HD
+    if width <= 1366 and height <= 768:
+        return 'hd'
+    # FHD
+    if width <= 1920 and height <= 1200:
+        return 'fhd'
+    # 2K
+    if width <= 2880 and height <= 1800:
+        return '2k'
+    # Tablet 
+    if (width == 2048 and height == 1536) or (width == 2732 and height == 2048) or (width == 2224 and height == 1668):
+        return 'tablet'
+    # 4K
+    if width >= 3840:
+        return '4k'
+    return 'other'
+
+def clean_device_info(x):
+    x = str(x).lower()
+    if 'missing' in x: return 'missing'
+    if 'windows' in x: return 'windows'
+    if 'ios' in x or 'iphone' in x: return 'ios'
+    if 'mac' in x: return 'mac'
+    if 'trident' in x: return 'ie'
+    if 'rv:' in x: return 'firefox'
+    if 'huawei' in x or 'ale-' in x or 'cam-' in x or 'hi6210' in x: return 'huawei'
+    if 'samsung' in x or 'sm-' in x: return 'samsung'
+    if 'lg-' in x: return 'lg'
+    if 'moto' in x: return 'motorola'
+    if 'android' in x: return 'android'
+    if 'nan' in x: return np.nan
+    return 'other'
+
+def merge_df(df_t: pd.DataFrame, df_i: pd.DataFrame)-> pd.DataFrame:
+    '''Merging the transaction and identity table using TransactionID'''
+    # left join on the transaction table using TransactionID
+    df = df_t.merge(df_i, on="TransactionID", how="left")
+    df = df.drop(columns=["TransactionID"])
+    return df
+
+class MyVAE(nn.Module):
+    '''Variational Autoencoder for anomaly detection.
+    Trained on normal transactions only.'''
+    def __init__(self,input_dim, z_dim):
+        super().__init__()
+        
+        ## Encoding architecture
+        
+        self.encode_arc = nn.Sequential(
+                            nn.Linear(input_dim,64),
+                            nn.LeakyReLU(),
+                            nn.Linear(64,32),
+                            nn.LeakyReLU(),
+                            nn.Linear(32,16),
+                            nn.LeakyReLU(),
+        )
+        
+        self.mu_head = nn.Linear(16, z_dim)
+        self.logvar_head = nn.Linear(16, z_dim)
+        
+        ## Decoding architecture
+        
+        self.decode_arc = nn.Sequential(
+                            nn.Linear(z_dim, 16),
+                            nn.ReLU(),
+                            nn.Linear(16,32),
+                            nn.ReLU(),
+                            nn.Linear(32,64),
+                            nn.ReLU(),
+                            nn.Linear(64, input_dim)
+        )
+        
+        
+        
+        
+    def encode(self,x):
+        h = self.encode_arc(x)
+        return self.mu_head(h), self.logvar_head(h)
+    
+    def reparameterize(self, mu, logvar):
+        sigma = torch.exp(0.5*logvar)
+        epsilon = torch.randn_like(sigma)
+        reparam = mu + epsilon*sigma
+        return reparam
+    
+    def decode(self,z):
+        h = self.decode_arc(z)
+        return h
+    
+    def forward(self,x):
+        mu, logvar = self.encode(x)
+        z = self.reparameterize(mu,logvar)
+        reconstructed_x = self.decode(z)
+        return reconstructed_x, mu, logvar
+
 def evaluate_vae(model, test_dataloader: DataLoader, device, scaler):
     '''Evaluate the score for the vae model'''
-    try:
-        model.eval()
+    model.eval()
 
-        reconstruction_errors = []
+    reconstruction_errors = []
 
-        with torch.no_grad():
-            for batch in test_dataloader:
-                X = batch[0].to(device)
-                reconstructed, _, _ = model(X)
-                errors = torch.mean((X - reconstructed) ** 2, dim=1)
-        
-                errors_np = errors.cpu().numpy()
-        
-                reconstruction_errors.extend(errors_np)
+    with torch.no_grad():
+        for batch in test_dataloader:
+            X = batch[0].to(device)
+            reconstructed, _, _ = model(X)
+            errors = torch.mean((X - reconstructed) ** 2, dim=1)
+    
+            errors_np = errors.cpu().numpy()
+    
+            reconstruction_errors.extend(errors_np)
 
-        reconstruction_errors = np.array(reconstruction_errors).reshape(-1, 1)
-        vae_normalized = scaler.transform(reconstruction_errors).flatten()
-        return vae_normalized
-    except Exception as e:
-        raise
+    reconstruction_errors = np.array(reconstruction_errors).reshape(-1, 1)
+    vae_normalized = scaler.transform(reconstruction_errors).flatten()
+    return vae_normalized
+
 
 def evaluate_iso(model, test_X: np.ndarray, scaler):
     '''Evaluate the score for the Isolation forest model'''
-    try:
 
-        iso_scores = -model.decision_function(test_X)
-        iso_normalized = scaler.transform(iso_scores.reshape(-1, 1)).flatten()
+    iso_scores = -model.decision_function(test_X)
+    iso_normalized = scaler.transform(iso_scores.reshape(-1, 1)).flatten()
 
-        return iso_normalized
-    except Exception as e:
-        raise
+    return iso_normalized
 
 
 def load_models(vae_path: str, iso_path: str, input_dim: int, z_dim: int) -> tuple:
@@ -125,6 +271,7 @@ def run_pipeline(df_t, df_i, VAE_model, ISO_model, VAE_pipeline, ISO_pipeline,VA
     identity_list = list(columns["Identity_list"])
 
     # Clean
+    df_t["P_emaildomain"] = df_t["P_emaildomain"].apply(clean_email)
     df_t = extract_temporal_features(df_t)
     transaction_list.extend(["hour","day_of_week"])
     # Align columns

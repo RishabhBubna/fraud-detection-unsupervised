@@ -11,9 +11,6 @@ import logging
 ## yaml
 import yaml
 
-## absolute path for data
-from config import RAW_TRANSACTION_PATH, RAW_IDENTITY_PATH
-
 ## file saving
 import json
 
@@ -21,7 +18,7 @@ import json
 np.random.seed(26)
 
 from utils import load_params, setup_logger
-
+from config import RAW_TRANSACTION_PATH, RAW_IDENTITY_PATH
 logger = setup_logger("data_ingestion","ingestion_error.log")
 
 def load_transaction_data(raw_transaction_data_path: str, no_rows: int)-> pd.DataFrame:
