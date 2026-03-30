@@ -1,7 +1,7 @@
 # Fraud Detection using Unsupervised Learning
 
 [![View Notebook](https://img.shields.io/badge/Jupyter-View_Notebook-orange?logo=Jupyter)](https://github.com/RishabhBubna/ML_Pipeline/blob/main/IEEE_notebook.ipynb)
-[![CI](https://github.com/RishabhBubna/fraud-detection-unsupervised/actions/workflows/ci.yml/badge.svg)](https://github.com/RishabhBubna/fraud-detection-unsupervised/actions/workflows/cicd.yml)
+[![CI](https://github.com/RishabhBubna/fraud-detection-unsupervised/actions/workflows/cicd.yml/badge.svg)](https://github.com/RishabhBubna/fraud-detection-unsupervised/actions/workflows/cicd.yml)
 [![Docker](https://img.shields.io/badge/Docker-rishabhbubna47%2Ffraud--detection-blue?logo=docker)](https://hub.docker.com/r/rishabhbubna47/fraud-detection)
 
 Unsupervised anomaly detection on the IEEE-CIS Fraud Detection dataset using a Variational Autoencoder (VAE) and Isolation Forest ensemble. No fraud labels are used during training. The project includes a full MLOps pipeline, DVC for data and pipeline versioning, MLflow for experiment tracking, FastAPI for inference, Docker for containerization, and GitHub Actions for CI/CD.
