@@ -214,7 +214,7 @@ def load_models(vae_path: str, iso_path: str, input_dim: int, z_dim: int) -> tup
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     vae_model = MyVAE(input_dim, z_dim).to(device)
-    vae_model.load_state_dict(torch.load(vae_path, map_location=device))
+    vae_model.load_state_dict(torch.load(vae_path, map_location=device, weights_only=False))
     vae_model.eval()
 
     iso_model = joblib.load(iso_path)
