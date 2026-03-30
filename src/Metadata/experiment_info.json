@@ -1,0 +1,6 @@
+{
+    "run_id": "faeed04446914b018921f41a3f0ab60c",
+    "VAE_path": "s3://bucket-for-mlflow-63/6/faeed04446914b018921f41a3f0ab60c/artifacts/VAE_model",
+    "ISO_path": "s3://bucket-for-mlflow-63/6/faeed04446914b018921f41a3f0ab60c/artifacts/iso_forest_model",
+    "pipeline_path": "s3://bucket-for-mlflow-63/6/faeed04446914b018921f41a3f0ab60c/artifacts/pipeline"
+}
